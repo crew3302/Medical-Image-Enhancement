@@ -5,8 +5,10 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from typing import Optional, Tuple
+import os
+from typing import Optional
 
+# --- Constants ---
 BG_COLOR = "#2e2e2e"
 FRAME_COLOR = "#3c3c3c"
 TEXT_COLOR = "#dcdcdc"
@@ -16,6 +18,7 @@ ERROR_COLOR = "#e74c3c"
 CANVAS_BG = "#1c1c1c"
 
 HISTOGRAM_PIXEL_LIMIT = 250000
+OUTPUT_DIR = "output"
 
 class ImageEnhancerApp:
     def __init__(self, root: tk.Tk):
@@ -24,10 +27,12 @@ class ImageEnhancerApp:
         self.root.geometry("1600x900")
         self.root.configure(bg=BG_COLOR)
 
+        # --- Instance Variables ---
         self.original_image: Optional[np.ndarray] = None
         self.processed_image: Optional[np.ndarray] = None
         self.tk_original_image: Optional[ImageTk.PhotoImage] = None
         self.tk_processed_image: Optional[ImageTk.PhotoImage] = None
+        self.original_filename: Optional[str] = None
         
         self.debounce_timer: Optional[str] = None
         self.lut_cache: dict = {}
@@ -35,6 +40,10 @@ class ImageEnhancerApp:
         
         self.setup_styles()
         self.setup_gui()
+        
+        # --- Create output directory on startup ---
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
 
     def setup_styles(self):
         style = ttk.Style()
@@ -70,18 +79,14 @@ class ImageEnhancerApp:
         file_frame.pack(fill=tk.X, pady=(0, 20))
         self.load_button = ttk.Button(file_frame, text="Load Image", command=self.load_image, style='TButton')
         self.load_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5, ipady=5)
-        self.save_button = ttk.Button(file_frame, text="Save Enhanced Image", command=self.save_image, state=tk.DISABLED, style='TButton')
+        self.save_button = ttk.Button(file_frame, text="Save to 'output' Folder", command=self.save_output, state=tk.DISABLED, style='TButton')
         self.save_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5, ipady=5)
         
         tech_frame = ttk.LabelFrame(parent_frame, text="Enhancement Techniques", style='TLabelframe', padding=15)
         tech_frame.pack(fill=tk.X, pady=15)
         self.technique_var = tk.StringVar(value="None")
         
-        techniques = [
-            ("None (Show Original)", "None"),
-            ("Histogram Equalization", "hist_eq"),
-            ("Power-Law (Gamma)", "gamma"),
-        ]
+        techniques = [("None (Show Original)", "None"), ("Histogram Equalization", "hist_eq"), ("Power-Law (Gamma)", "gamma")]
         for text, value in techniques:
             ttk.Radiobutton(tech_frame, text=text, variable=self.technique_var, value=value, command=self.on_technique_change).pack(anchor=tk.W, pady=3)
         
@@ -129,9 +134,9 @@ class ImageEnhancerApp:
     def on_canvas_resize(self, event: tk.Event):
         canvas = event.widget
         canvas_w, canvas_h = canvas.winfo_width(), canvas.winfo_height()
-        last_size = self.last_canvas_sizes.get(id(canvas))
-        if last_size == (canvas_w, canvas_h): return
+        if self.last_canvas_sizes.get(id(canvas)) == (canvas_w, canvas_h): return
         self.last_canvas_sizes[id(canvas)] = (canvas_w, canvas_h)
+        
         if canvas == self.original_canvas and self.original_image is not None:
             self.display_image(self.original_image, self.original_canvas, 'original', self.original_info_label)
         elif canvas == self.processed_canvas and self.processed_image is not None:
@@ -140,24 +145,19 @@ class ImageEnhancerApp:
     def on_slider_change(self, _=None):
         if self.technique_var.get() == "gamma":
             self.gamma_label.config(text=f"Gamma (γ): {self.gamma_var.get():.2f}")
-            
         if self.debounce_timer:
             self.root.after_cancel(self.debounce_timer)
         self.debounce_timer = self.root.after(100, self.apply_enhancement)
 
     def on_technique_change(self):
-        self.gamma_label.pack_forget()
-        self.gamma_slider.pack_forget()
-        
+        self.gamma_label.pack_forget(); self.gamma_slider.pack_forget()
         if self.technique_var.get() == "gamma":
             self.gamma_label.pack(anchor=tk.W)
             self.gamma_slider.pack(fill=tk.X, pady=(0, 10))
-            
         self.apply_enhancement()
 
     def apply_enhancement(self):
         if self.original_image is None: return
-        
         technique = self.technique_var.get()
         
         if technique == "hist_eq":
@@ -167,9 +167,9 @@ class ImageEnhancerApp:
             cache_key = f"gamma_{gamma}"
             if cache_key not in self.lut_cache:
                 inv_gamma = 1.0 / gamma
-                self.lut_cache[cache_key] = np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(256)]).astype("uint8")
-            table = self.lut_cache[cache_key]
-            self.processed_image = cv2.LUT(self.original_image, table)
+                table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(256)]).astype("uint8")
+                self.lut_cache[cache_key] = table
+            self.processed_image = cv2.LUT(self.original_image, self.lut_cache[cache_key])
         else:
             self.processed_image = self.original_image.copy()
         
@@ -217,13 +217,11 @@ class ImageEnhancerApp:
         fig, ax = plt.subplots(facecolor=FRAME_COLOR)
         ax.set_facecolor(BG_COLOR)
         ax.bar(bins[:-1], counts, width=1, color=color)
-        ax.set_xlim([0, 255])
-        ax.tick_params(colors=TEXT_COLOR, which='both')
+        ax.set_xlim([0, 255]); ax.tick_params(colors=TEXT_COLOR, which='both')
         ax.set_xlabel("Pixel Intensity", color=TEXT_COLOR, fontsize=8)
         ax.set_ylabel("Frequency", color=TEXT_COLOR, fontsize=8)
         ax.tick_params(axis='both', which='major', labelsize=8)
-        ax.grid(True, linestyle='--', alpha=0.2)
-        fig.tight_layout(pad=0.5)
+        ax.grid(True, linestyle='--', alpha=0.2); fig.tight_layout(pad=0.5)
         canvas = FigureCanvasTkAgg(fig, master=parent_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -236,22 +234,54 @@ class ImageEnhancerApp:
             img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
             if img is None: raise ValueError("File is not a valid image.")
             self.original_image = img
-            self.lut_cache.clear()
-            self.last_canvas_sizes = {}
+            self.original_filename = os.path.basename(file_path)
+            self.lut_cache.clear(); self.last_canvas_sizes = {}
             self.reset_image()
             self.save_button['state'] = tk.NORMAL
             self.reset_button['state'] = tk.NORMAL
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load image: {e}")
 
-    def save_image(self):
-        if self.processed_image is None: messagebox.showwarning("Warning", "No enhanced image to save."); return
-        file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG file", "*.png"), ("JPEG file", "*.jpg")])
-        if file_path:
-            try:
-                cv2.imwrite(file_path, self.processed_image)
-                messagebox.showinfo("Success", f"Image saved to:\n{file_path}")
-            except Exception as e: messagebox.showerror("Error", f"Failed to save image: {e}")
+    def save_output(self):
+        if self.processed_image is None or self.original_filename is None:
+            messagebox.showwarning("Warning", "No enhanced image to save.")
+            return
+        technique = self.technique_var.get()
+        if technique == "None":
+            messagebox.showinfo("Info", "No enhancement applied. Cannot save.")
+            return
+
+        base_name, _ = os.path.splitext(self.original_filename)
+        suffix = f"{technique}_gamma{self.gamma_var.get():.2f}" if technique == "gamma" else technique
+            
+        new_image_filename = f"{base_name}_{suffix}.png"
+        new_hist_filename = f"{base_name}_{suffix}_hist.png"
+        image_save_path = os.path.join(OUTPUT_DIR, new_image_filename)
+        hist_save_path = os.path.join(OUTPUT_DIR, new_hist_filename)
+
+        try:
+            cv2.imwrite(image_save_path, self.processed_image)
+            self.save_histogram_to_file(self.processed_image, hist_save_path, ERROR_COLOR, "Enhanced Histogram")
+            messagebox.showinfo("Success", f"Outputs saved to '{OUTPUT_DIR}' folder:\n- {new_image_filename}\n- {new_hist_filename}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save files: {e}")
+
+    def save_histogram_to_file(self, image_data, file_path, color, title):
+        counts, bins, sampled = self.calculate_histogram_fast(image_data)
+        full_title = title + (" (Sampled)" if sampled else "")
+
+        fig, ax = plt.subplots(facecolor=FRAME_COLOR, figsize=(6, 4))
+        fig.suptitle(full_title, color=TEXT_COLOR, fontsize=12)
+        ax.set_facecolor(BG_COLOR)
+        ax.bar(bins[:-1], counts, width=1.0, color=color)
+        ax.set_xlim([0, 255]); ax.tick_params(colors=TEXT_COLOR, which='both')
+        ax.set_xlabel("Pixel Intensity", color=TEXT_COLOR)
+        ax.set_ylabel("Frequency", color=TEXT_COLOR)
+        ax.grid(True, linestyle='--', alpha=0.2)
+        fig.tight_layout(rect=[0, 0, 1, 0.95])
+        
+        fig.savefig(file_path, facecolor=FRAME_COLOR, dpi=150)
+        plt.close(fig)
 
     def reset_image(self):
         if self.original_image is not None:
@@ -259,7 +289,6 @@ class ImageEnhancerApp:
             self.last_canvas_sizes = {}
             self.display_image(self.original_image, self.original_canvas, 'original', self.original_info_label)
             self.apply_enhancement()
-
 
 if __name__ == "__main__":
     root = tk.Tk()

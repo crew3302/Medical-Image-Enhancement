@@ -31,8 +31,18 @@ Run the application:
 ```bash
 python app.py
 ```
+## 📂 Dataset
+All the dataset are available in the **dataset/** folder:
+- `Dataset/` → Complete Dataset
 
 ## 📂 Report
-All documentation and screenshots are available in the **report/** folder:
+All documentation are available in the **report/** folder:
 - `Report.docx` → final report
-- `images/` → contains before/after comparisons and histograms
+
+## 📂 Output GUI
+All the screenshots are available in the **output/** folder:
+- `output/` → contains before/after comparisons and histograms
+
+## 📂 Output CLI
+All the screenshots are available in the **cli_output/** folder:
+- `cli_output/` → contains after comparisons and histograms via commad
