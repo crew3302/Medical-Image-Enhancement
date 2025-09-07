@@ -7,12 +7,16 @@ It provides two essential techniques for improving visibility of medical images:
 - **Power-Law (Gamma) Transformation** – enhances details by controlling brightness and contrast.  
 
 ## 🚀 Features
-- Simple Tkinter GUI interface
-- Upload and preview medical images
-- Apply Histogram Equalization
-- Apply Gamma Transformation (with user-controlled gamma values)
-- Display before/after results and histograms
-- Export enhanced images for reports
+- 🖼️ **Dual Enhancement Techniques**  
+  - **Histogram Equalization** – automatic, high-impact contrast improvement.  
+  - **Gamma Transformation** – manual brightness and tonal range control.  
+
+- 🖥️ **Interactive GUI** – clean Tkinter interface with real-time image updates.  
+- 📊 **Instant Histogram Analysis** – compare pixel distribution before and after.  
+- ⚡ **Side-by-Side Comparison** – visualize enhancement results instantly.  
+- 💾 **Export Functionality** – save enhanced images and histograms for reports.  
+- ⌨️ **CLI Mode** – batch process images or integrate into pipelines.  
+
 
 ## 🛠️ Installation
 Clone the repository:
@@ -46,3 +50,14 @@ All the screenshots are available in the **output/** folder:
 ## 📂 Output CLI
 All the screenshots are available in the **cli_output/** folder:
 - `cli_output/` → contains after comparisons and histograms via commad
+
+## 🙏 Acknowledgments
+- Developed as part of the academic curriculum.  
+- Special thanks to the **Chest X-Ray (Pneumonia) Dataset** on [Kaggle](https://www.kaggle.com/paultimothymooney/chest-xray-pneumonia) for providing publicly available data used for testing and validation.  
+
+---
+
+## 📧 Contact
+👤 **Muhammad Sohaib**  
+🔗 GitHub: [crew3302](https://github.com/crew3302)  
+📌 Project Link: [Medical-Image-Enhancement](https://github.com/crew3302/Medical-Image-Enhancement)
