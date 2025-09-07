@@ -17,7 +17,7 @@ It provides two essential techniques for improving visibility of medical images:
 ## 🛠️ Installation
 Clone the repository:
 ```bash
-git clone https://github.com/your-username/Medical-Image-Enhancement.git
+git clone https://github.com/crew3302/Medical-Image-Enhancement.git
 cd Medical-Image-Enhancement
 ```
 
@@ -34,8 +34,5 @@ python app.py
 
 ## 📂 Report
 All documentation and screenshots are available in the **report/** folder:
-- `Assignment.docx` → final report
+- `Report.docx` → final report
 - `images/` → contains before/after comparisons and histograms
-
-## 📜 License
-This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
